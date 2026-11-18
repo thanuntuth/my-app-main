@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui";
 import { useAppData } from "@/lib/storage";
 
-export default function EditVendorPage() {
+function EditVendorContent() {
   const router = useRouter();
   const params = useSearchParams();
   const name = params.get("name") || "";
@@ -173,5 +173,19 @@ export default function EditVendorPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function EditVendorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-5 text-sm text-slate-500">
+          กำลังโหลดข้อมูลผู้จำหน่าย...
+        </div>
+      }
+    >
+      <EditVendorContent />
+    </Suspense>
   );
 }
