@@ -400,7 +400,7 @@ export default function Page() {
               </DialogBody>
 
               <DialogFooter>
-                <DialogClose className="border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">ปิด</DialogClose>
+                <DialogClose className="border border-slate-200 px-4 py-1 rounded bg-white text-slate-600 hover:bg-slate-50">ปิด</DialogClose>
                 <Button
                   variant="primary"
                   className="bg-[#00877E] hover:bg-[#00786F]"
