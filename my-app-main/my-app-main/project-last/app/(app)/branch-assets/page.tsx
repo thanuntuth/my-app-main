@@ -209,19 +209,11 @@ export default function BranchWorkspacePage() {
     return branchAssets.filter((a) => lostIdSet.has(a.id));
   }, [branchAssets, lostIdSet]);
 
-  // รายการที่ต้องตรวจนับในรอบนี้ (อ้างอิง checklists ของสาขานี้)
-  const countableAssets = useMemo(() => {
-    if (!activeRound) return [];
-    const allChecklists = activeRound.checklists ?? [];
-    if (allChecklists.length > 0) {
-      const myLists = allChecklists.filter((c) => c.branchId === branch1Id);
-      const sentLists = myLists.filter((c) => c.status === "sent");
-      const targetLists = sentLists.length > 0 ? sentLists : myLists;
-      const idSet = new Set(targetLists.flatMap((c) => c.assetIds));
-      return branchAssets.filter((a) => idSet.has(a.id));
-    }
-    return branchAssets;
-  }, [activeRound, branchAssets, branch1Id]);
+ // รายการทรัพย์สินทั้งหมดที่ต้องตรวจนับในสาขา
+const countableAssets = useMemo(() => {
+  if (!activeRound) return [];
+  return branchAssets;
+}, [activeRound, branchAssets]);
 
   const countedCount = useMemo(() => {
     if (!activeRound) return 0;

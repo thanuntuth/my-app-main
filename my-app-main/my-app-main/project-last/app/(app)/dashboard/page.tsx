@@ -3,18 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { Card, PageTitle } from "@/components/ui";
-import { baht, remainingValue } from "@/lib/depreciation";
+import { Card } from "@/components/ui";
 import { RESULT_LABEL, ROUND_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { useAppData } from "@/lib/storage";
 import { STORE_BRANCH_ID } from "@/lib/utils";
-import type {
-  Asset,
-  AssetStatus,
-  Checklist,
-  CountItemResult,
-  CountRound,
-} from "@/lib/types";
+import type { Asset, CountItemResult, CountRound } from "@/lib/types";
 
 const STATUS_COLORS = {
   normal: "#00786F",
@@ -279,26 +272,23 @@ export default function Dashboard() {
     [currentRoundResults]
   );
 
-  const rawChecklists: Checklist[] = activeRound?.checklists ?? [];
-  const sentChecklists = rawChecklists.filter((c) => c.status === "sent");
-  const allChecklists =
-    sentChecklists.length > 0 ? sentChecklists : rawChecklists;
-  const checklistAssetIds = useMemo(
-    () => allChecklists.flatMap((c) => c.assetIds),
-    [allChecklists]
+  const assignedAssetsList = useMemo(() => {
+  if (!activeRound) return [];
+
+  const selectedBranch = safeBranches.find(
+    (branch) =>
+      branch.id === activeRound.branch ||
+      branch.name === activeRound.branch
   );
 
-  const assignedAssetsList = useMemo(() => {
-    if (!activeRound) return [];
-    if (checklistAssetIds.length > 0) {
-      const idSet = new Set(checklistAssetIds);
-      return safeAssets.filter((a) => idSet.has(a.id));
-    }
-    return safeAssets.filter(
-      (a) => (a.branchId as string) !== "hq" && a.status !== "in-transit"
-    );
-  }, [activeRound, checklistAssetIds, safeAssets]);
-
+  return safeAssets.filter(
+    (asset) =>
+      asset.status !== "in-transit" &&
+      (asset.branchId as string) !== "hq" &&
+      (!activeRound.branch ||
+        asset.branchId === (selectedBranch?.id ?? activeRound.branch))
+  );
+}, [activeRound, safeAssets, safeBranches]);
   const countedAssetsList = useMemo(
     () => safeAssets.filter((a) => countedIds.has(a.id)),
     [safeAssets, countedIds]
@@ -344,12 +334,9 @@ export default function Dashboard() {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [safeRounds, activeRound]);
 
-  const getBranchNames = (r: CountRound) => {
-    const ids = r.checklists?.map((c: Checklist) => c.branchId) ?? [];
-    if (ids.length === 0) return primaryBranchName;
-    return ids.map((id) => getBranchLabel(id)).join(", ");
-  };
-
+const getBranchNames = (r: CountRound) => {
+  return r.branch || "ทุกสาขา";
+};
   // 7. งานซ่อม
   const openRepairIds = useMemo(
     () =>

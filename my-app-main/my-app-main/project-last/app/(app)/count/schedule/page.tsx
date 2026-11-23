@@ -26,28 +26,22 @@ const STATUS_COLOR = {
   closed: "bg-emerald-50 text-emerald-700",
 };
 
+
 function getRoundAssets(
   assets: Asset[],
   branches: Branch[],
-  round: CountRound | null | undefined,
+  round: CountRound | null | undefined
 ) {
   if (!round) return [];
 
-  const checklistAssetIds = (round.checklists ?? []).flatMap(
-    (checklist) => checklist.assetIds,
-  );
-  if (checklistAssetIds.length > 0) {
-    return assets.filter((asset) => checklistAssetIds.includes(asset.id));
-  }
-
   const selectedBranch = branches.find(
-    (branch) => branch.id === round.branch || branch.name === round.branch,
+    (branch) => branch.id === round.branch || branch.name === round.branch
   );
 
   return assets.filter(
     (asset) =>
       asset.status !== "in-transit" &&
-      (!round.branch || asset.branchId === (selectedBranch?.id ?? round.branch)),
+      (!round.branch || asset.branchId === (selectedBranch?.id ?? round.branch))
   );
 }
 
@@ -432,33 +426,6 @@ export default function Page() {
                   </table>
                 </div>
               </section>
-
-              {(selectedRound.checklists?.length ?? 0) > 0 && (
-                <section>
-                  <h3 className="mb-2 font-semibold text-slate-800">Checklist แยกตามสาขา</h3>
-                  <div className="space-y-2">
-                    {selectedRound.checklists?.map((checklist) => {
-                      const checklistBranch = branches.find(
-                        (branch) => branch.id === checklist.branchId,
-                      );
-                      return (
-                        <div
-                          key={checklist.branchId}
-                          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm"
-                        >
-                          <span className="font-medium text-slate-800">
-                            {checklistBranch?.name ?? checklist.branchId}
-                          </span>
-                          <span className="text-slate-500">
-                            {checklist.assetIds.length} รายการ ·{" "}
-                            {checklist.status === "sent" ? "ส่งให้สาขาแล้ว" : "กำลังตรวจสอบ"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
 
               {selectedRound.extras.length > 0 && (
                 <section>
