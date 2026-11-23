@@ -23,13 +23,13 @@ export default function AssetsPage() {
       (asset.status === "damaged" || asset.status === "needs-repair") &&
       !openRepairIds.has(asset.id),
   ).length;
-  const reviewPending = round?.status === "review";
+  
   const tabs: { id: TabId; label: string; badge?: number | string }[] = [
     { id: "list", label: "รายการทรัพย์สิน" },
     {
-      id: "review",
-      label: "ตรวจผลนับ",
-      badge: reviewPending ? "รอตรวจ" : undefined,
+
+  id: "review",
+  label: "ตรวจผลนับ",
     },
     {
       id: "repairs",

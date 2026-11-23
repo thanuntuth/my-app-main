@@ -6,16 +6,17 @@ import { Badge, Button } from "@/components/ui";
 import { RESULT_LABEL, ROUND_LABEL, STATUS_LABEL } from "@/lib/labels";
 import { useAppData } from "@/lib/storage";
 import type { Asset, CountItemResult, CountResult } from "@/lib/types";
-import { STORE_BRANCH_ID } from "@/lib/utils";
+import { STORE_BRANCH_ID,lostAssetIds } from "@/lib/utils";
 // import AssetDetailDialog from "./AssetDetailDialog";
 import { EmptyState, Notice, Panel, ROW, Stat, TABLE_WRAP, TBODY, TD, TH, THEAD } from "./parts";
-
 const TONE: Record<CountResult, "green" | "red" | "amber"> = {
   found: "green",
   "not-found": "red",
   damaged: "amber",
   "needs-repair": "amber",
 };
+
+
 
 type Filter = "all" | "issues";
 
@@ -72,13 +73,13 @@ function AssetDetailDialog({
             <h3 className="mt-2 text-lg font-bold text-slate-800">{asset.name}</h3>
             <p className="text-xs text-slate-500">หมวดหมู่: {asset.type}</p>
           </div>
-          <button
+          {/* <button
             type="button"
             onClick={onClose}
             className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800"
           >
             ปิด ✕
-          </button>
+          </button> */}
         </div>
 
         <div className="mt-4 space-y-4 text-sm">
@@ -156,7 +157,7 @@ function AssetDetailDialog({
 }
 
 export default function CountReviewTab() {
-  const { assets, setAssets, round, setRound, log } = useAppData();
+  const { assets, setAssets, round, setRound, log , rounds } = useAppData();
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<{ src: string; title: string } | null>(null);
@@ -170,7 +171,7 @@ export default function CountReviewTab() {
       />
     );
   }
-
+  const lostCount = lostAssetIds(rounds).size;
   const assetOf = (id: string) => assets.find((a) => a.id === id);
   const results = Object.entries(round.results);
 
@@ -181,7 +182,9 @@ export default function CountReviewTab() {
   const total = expected.length;
   const missing = expected.filter((id) => !round.results[id]);
 
-  const issues = results.filter(([, r]) => r.result !== "found");
+  const issues = results.filter(
+  ([, r]) => r.result === "damaged" || r.result === "needs-repair"
+  );
   const foundCount = results.length - issues.length;
   const progress = total > 0 ? Math.min(Math.round((results.length / total) * 100), 100) : 0;
 
@@ -192,7 +195,8 @@ export default function CountReviewTab() {
     asset: assetOf(id),
     r: round.results[id] as CountItemResult | undefined,
   }));
-  const isIssue = (r?: CountItemResult) => !!r && r.result !== "found";
+  const isIssue = (r?: CountItemResult) =>
+  r?.result === "damaged" || r?.result === "needs-repair";
   const shown = filter === "issues" ? rows.filter((x) => isIssue(x.r)) : rows;
 
   const selectedAsset = selectedId ? assetOf(selectedId) : undefined;
@@ -263,25 +267,25 @@ export default function CountReviewTab() {
               tagStyle="bg-blue-50 text-blue-700"
             />
             <Stat
-              label="พบ"
+              label="ผลตรวจนับปกติ"
               value={foundCount}
               tag="ตรงตามระบบ"
               valueColor="text-emerald-600"
               tagStyle="bg-emerald-50 text-emerald-700"
             />
             <Stat
-              label="ผลต่าง"
+              label="ผลตรวจนับชำรุด"
               value={issues.length}
-              tag="ต้องตรวจสอบ"
+              tag="ชำรุด / ต้องซ่อม"
               valueColor="text-amber-600"
               tagStyle="bg-amber-50 text-amber-700"
             />
             <Stat
-              label="พบนอกรายการ"
-              value={round.extras.length}
-              tag="ไม่มีในระบบ"
-              valueColor="text-red-600"
-              tagStyle="bg-red-50 text-red-700"
+            label="ทรัพย์สินสูญหาย"
+            value={lostCount}
+            tag="ไม่พบจากการตรวจนับ"
+            valueColor="text-red-600"
+            tagStyle="bg-red-50 text-red-700"
             />
           </div>
 

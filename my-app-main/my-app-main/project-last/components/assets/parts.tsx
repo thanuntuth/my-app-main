@@ -27,7 +27,7 @@ export function Stat({
   );
 }
 
-// กล่องเนื้อหามีหัวการ์ด (สไตล์เดียวกับหัวการ์ดสาขาใน checklist)
+// กล่องเนื้อหามีหัวการ์ด 
 export function Panel({
   title,
   subtitle,

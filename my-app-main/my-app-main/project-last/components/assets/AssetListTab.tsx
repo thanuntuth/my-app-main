@@ -13,7 +13,7 @@ import { Stat } from "./parts";
 
 const STATUS_STYLE: Record<AssetStatus, string> = {
   normal: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-  damaged: "bg-red-50 text-red-700 ring-1 ring-red-200",
+  damaged: "bg-orange-50 text-orange-700 ring-1 ring-orange-200",
   "needs-repair": "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   "in-transit": "bg-gray-100 text-gray-600 ring-1 ring-gray-200",
 };

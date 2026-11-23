@@ -17,6 +17,76 @@ import {
   baht,
 } from "@/lib/depreciation";
 
+function getTodayDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function calculateWarrantyDate(
+  purchaseDate: string,
+  durationText: string,
+  unit: string
+): string {
+  if (!purchaseDate || !durationText.trim()) return "";
+
+  const duration = Number(durationText);
+
+  if (!Number.isInteger(duration) || duration < 1) return "";
+
+  const [year, month, day] = purchaseDate.split("-").map(Number);
+
+  if (!year || !month || !day) return "";
+
+  let resultDate: Date;
+
+  if (unit === "วัน") {
+    resultDate = new Date(year, month - 1, day);
+    resultDate.setDate(resultDate.getDate() + duration);
+  } else if (unit === "เดือน") {
+    const targetMonth = month - 1 + duration;
+    const targetYear = year + Math.floor(targetMonth / 12);
+    const normalizedMonth = targetMonth % 12;
+
+    const lastDay = new Date(
+      targetYear,
+      normalizedMonth + 1,
+      0
+    ).getDate();
+
+    resultDate = new Date(
+      targetYear,
+      normalizedMonth,
+      Math.min(day, lastDay)
+    );
+  } else if (unit === "ปี") {
+    const targetYear = year + duration;
+
+    const lastDay = new Date(
+      targetYear,
+      month,
+      0
+    ).getDate();
+
+    resultDate = new Date(
+      targetYear,
+      month - 1,
+      Math.min(day, lastDay)
+    );
+  } else {
+    return "";
+  }
+
+  return [
+    resultDate.getFullYear(),
+    String(resultDate.getMonth() + 1).padStart(2, "0"),
+    String(resultDate.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
 export default function AddAssetPage() {
   const router = useRouter();
 
@@ -34,11 +104,9 @@ export default function AddAssetPage() {
   const [category, setCategory] = useState("IT");
   const [branchId, setBranchId] = useState(STORE_BRANCH_ID);
 
-  // ระยะเวลารับประกัน
   const [warrantyDuration, setWarrantyDuration] = useState("");
   const [warrantyUnit, setWarrantyUnit] = useState("ปี");
 
-  // วันที่ปัจจุบัน
   const [todayDate, setTodayDate] = useState("");
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
 
@@ -46,22 +114,34 @@ export default function AddAssetPage() {
   const [purchaseDate, setPurchaseDate] = useState("");
   const [usefulLifeYears, setUsefulLifeYears] = useState("5");
 
+  // เริ่มต้นด้วยรูปว่างเสมอ ไม่ดึงรูปจากทรัพย์สินเก่า
   const [image, setImage] = useState("");
   const [qrCode, setQrCode] = useState("");
+
   const [saving, setSaving] = useState(false);
 
-  // กำหนดวันที่ปัจจุบันหลัง Component โหลด
   useEffect(() => {
     const now = new Date();
-
-    const dateString = now.toISOString().slice(0, 10);
+    const dateString = getTodayDate();
 
     setTodayDate(dateString);
     setCurrentDate(now);
-    setPurchaseDate((prev) => prev || dateString);
+    setPurchaseDate(dateString);
+
+    // ล้างข้อมูลฟอร์มเมื่อเข้าหน้าเพิ่มทรัพย์สิน
+    setName("");
+    setVendor("");
+    setCategory("IT");
+    setBranchId(STORE_BRANCH_ID);
+    setWarrantyDuration("");
+    setWarrantyUnit("ปี");
+    setPrice("0");
+    setUsefulLifeYears("5");
+    setImage("");
+    setQrCode("");
+    setSaving(false);
   }, []);
 
-  // รวมรายชื่อผู้จำหน่าย
   const vendorOptions = [
     ...new Set(
       [
@@ -75,73 +155,18 @@ export default function AddAssetPage() {
     ),
   ];
 
-  // ค้นหารายละเอียดผู้จำหน่าย
   const selectedVendor = vendors.find(
     (item) => item.name === vendor
   );
 
-  // สร้างรหัสทรัพย์สิน
   const assetId = nextAssetId(assets);
 
-  // คำนวณวันหมดประกันอัตโนมัติ
-  const warrantyUntil = (() => {
-    if (!purchaseDate || !warrantyDuration.trim()) return "";
+  const warrantyUntil = calculateWarrantyDate(
+    purchaseDate,
+    warrantyDuration,
+    warrantyUnit
+  );
 
-    const duration = Number(warrantyDuration);
-
-    if (!Number.isInteger(duration) || duration < 1) return "";
-
-    const [year, month, day] = purchaseDate.split("-").map(Number);
-
-    if (!year || !month || !day) return "";
-
-    let resultDate: Date;
-
-    if (warrantyUnit === "วัน") {
-      resultDate = new Date(year, month - 1, day);
-      resultDate.setDate(resultDate.getDate() + duration);
-    } else if (warrantyUnit === "เดือน") {
-      const targetMonth = month - 1 + duration;
-      const targetYear = year + Math.floor(targetMonth / 12);
-      const normalizedMonth = targetMonth % 12;
-
-      const lastDay = new Date(
-        targetYear,
-        normalizedMonth + 1,
-        0
-      ).getDate();
-
-      resultDate = new Date(
-        targetYear,
-        normalizedMonth,
-        Math.min(day, lastDay)
-      );
-    } else if (warrantyUnit === "ปี") {
-      const targetYear = year + duration;
-
-      const lastDay = new Date(
-        targetYear,
-        month,
-        0
-      ).getDate();
-
-      resultDate = new Date(
-        targetYear,
-        month - 1,
-        Math.min(day, lastDay)
-      );
-    } else {
-      return "";
-    }
-
-    return [
-      resultDate.getFullYear(),
-      String(resultDate.getMonth() + 1).padStart(2, "0"),
-      String(resultDate.getDate()).padStart(2, "0"),
-    ].join("-");
-  })();
-
-  // คำนวณค่าเสื่อมราคา
   const currentPrice = Number(price) || 0;
   const currentLife = Number(usefulLifeYears) || 0;
 
@@ -167,8 +192,10 @@ export default function AddAssetPage() {
     currentLife
   );
 
-  // สร้าง QR Code
+  // สร้าง QR Code ของรายการใหม่
   useEffect(() => {
+    if (!assetId) return;
+
     let active = true;
 
     QRCode.toDataURL(assetId, {
@@ -187,7 +214,7 @@ export default function AddAssetPage() {
     };
   }, [assetId]);
 
-  // เลือกรูปภาพ
+  // เลือกรูปภาพของรายการใหม่
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -197,34 +224,63 @@ export default function AddAssetPage() {
 
     if (!file.type.startsWith("image/")) {
       alert("กรุณาเลือกไฟล์รูปภาพ");
+      e.target.value = "";
       return;
     }
 
     if (file.size > 500 * 1024) {
       alert("กรุณาเลือกรูปภาพขนาดไม่เกิน 500 KB");
+      e.target.value = "";
       return;
     }
 
     const reader = new FileReader();
 
     reader.onload = () => {
-      setImage(reader.result as string);
+      if (typeof reader.result === "string") {
+        setImage(reader.result);
+      }
+    };
+
+    reader.onerror = () => {
+      alert("ไม่สามารถอ่านไฟล์รูปภาพได้");
     };
 
     reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
-  // บันทึกทรัพย์สิน
+  // ล้างข้อมูลและกลับหน้ารายการ โดยไม่บันทึก
+  const handleCancel = () => {
+    if (saving) return;
+
+    setName("");
+    setVendor("");
+    setCategory("IT");
+    setBranchId(STORE_BRANCH_ID);
+    setWarrantyDuration("");
+    setWarrantyUnit("ปี");
+    setPrice("0");
+    setUsefulLifeYears("5");
+    setImage("");
+    setQrCode("");
+
+    router.replace("/assets");
+  };
+
+  // บันทึกทรัพย์สินใหม่
   const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!vendor) {
-      alert("กรุณาเลือกผู้จำหน่าย");
-      return;
-    }
+    if (saving) return;
 
     if (!name.trim()) {
       alert("กรุณากรอกชื่อทรัพย์สิน");
+      return;
+    }
+
+    if (!vendor.trim()) {
+      alert("กรุณาเลือกผู้จำหน่าย");
       return;
     }
 
@@ -275,8 +331,6 @@ export default function AddAssetPage() {
       return;
     }
 
-    if (saving) return;
-
     setSaving(true);
 
     try {
@@ -286,25 +340,36 @@ export default function AddAssetPage() {
         type: category,
         price: Number(price),
         purchaseDate,
-        vendor,
+        vendor: vendor.trim(),
         warrantyUntil,
         usefulLifeYears: Number(usefulLifeYears),
         branchId,
         status: "in-transit",
         received: false,
+
+        // เก็บเฉพาะรูปที่เลือกในฟอร์มรายการใหม่นี้
+        image: image || undefined,
       };
 
-      setAssets((prev) => [...prev, newAsset]);
+      setAssets((prev) => {
+        // ป้องกันรหัสซ้ำ
+        if (prev.some((asset) => asset.id === newAsset.id)) {
+          return prev;
+        }
+
+        return [...prev, newAsset];
+      });
 
       log(
         "Admin",
         `เพิ่มทรัพย์สิน ${assetId} ${newAsset.name}`
       );
 
-      alert("เพิ่มทรัพย์สินสำเร็จ");
-      router.push("/assets");
+      // กลับหน้ารายการทรัพย์สินหลังบันทึก
+      router.replace("/assets");
+      router.refresh();
     } catch (error) {
-      console.error(error);
+      console.error("Add asset error:", error);
       alert("บันทึกไม่สำเร็จ กรุณาลองใหม่");
       setSaving(false);
     }
@@ -322,7 +387,7 @@ export default function AddAssetPage() {
   const titleClass =
     "mb-5 text-lg font-bold text-slate-800";
 
-  if (!ready) {
+  if (!ready || !todayDate) {
     return (
       <main className="p-8 text-center text-slate-500">
         กำลังโหลดข้อมูล...
@@ -331,7 +396,7 @@ export default function AddAssetPage() {
   }
 
   return (
-    <main className="w-full pb-4">
+    <main className="-mt-2 min-h-screen w-full bg-white px-4 pt-0 pb-4 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1600px] space-y-5">
 
         <header>
@@ -391,16 +456,15 @@ export default function AddAssetPage() {
                       -- เลือกผู้จำหน่าย --
                     </option>
 
-                    {vendorOptions.map((name) => (
-                      <option key={name} value={name}>
-                        {name}
+                    {vendorOptions.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
                       </option>
                     ))}
                   </select>
 
                   {vendor && (
                     <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50/50 p-4">
-
                       <div className="mb-3 flex items-center gap-2">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-100">
                           <span className="text-lg">🏢</span>
@@ -417,7 +481,6 @@ export default function AddAssetPage() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
                         <div>
                           <p className="text-xs text-slate-500">
                             เบอร์โทรศัพท์
@@ -435,13 +498,11 @@ export default function AddAssetPage() {
                             {selectedVendor?.address || "-"}
                           </p>
                         </div>
-
                       </div>
 
                       {!selectedVendor && (
                         <p className="mt-3 text-xs text-slate-400">
-                          ผู้จำหน่ายรายนี้มาจากข้อมูลทรัพย์สินตัวอย่าง
-                          ยังไม่มีรายละเอียดเพิ่มเติมในหน้า Vendor
+                          ผู้จำหน่ายรายนี้ยังไม่มีรายละเอียดเพิ่มเติม
                         </p>
                       )}
                     </div>
@@ -450,9 +511,7 @@ export default function AddAssetPage() {
 
                 {/* ประเภท */}
                 <div>
-                  <label className={labelClass}>
-                    ประเภท
-                  </label>
+                  <label className={labelClass}>ประเภท</label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -467,9 +526,7 @@ export default function AddAssetPage() {
 
                 {/* สาขา */}
                 <div>
-                  <label className={labelClass}>
-                    ส่งไปยังสาขา
-                  </label>
+                  <label className={labelClass}>ส่งไปยังสาขา</label>
                   <select
                     value={branchId}
                     onChange={(e) => setBranchId(e.target.value)}
@@ -496,18 +553,14 @@ export default function AddAssetPage() {
                       min="1"
                       step="1"
                       value={warrantyDuration}
-                      onChange={(e) =>
-                        setWarrantyDuration(e.target.value)
-                      }
+                      onChange={(e) => setWarrantyDuration(e.target.value)}
                       placeholder="กรอกระยะเวลา"
                       className={inputClass}
                     />
 
                     <select
                       value={warrantyUnit}
-                      onChange={(e) =>
-                        setWarrantyUnit(e.target.value)
-                      }
+                      onChange={(e) => setWarrantyUnit(e.target.value)}
                       className={`${inputClass} max-w-[110px]`}
                     >
                       <option value="วัน">วัน</option>
@@ -517,24 +570,21 @@ export default function AddAssetPage() {
                   </div>
                 </div>
 
-                {/* วันหมดประกันอัตโนมัติ */}
+                {/* วันหมดประกัน */}
                 <div>
                   <label className={labelClass}>
                     ประกันถึงวันที่
                   </label>
-
                   <input
                     type="date"
                     value={warrantyUntil}
                     readOnly
                     className={`${inputClass} bg-slate-50`}
                   />
-
                   <p className="mt-1 text-xs text-teal-600">
                     คำนวณอัตโนมัติจากวันที่ซื้อและระยะเวลาประกัน
                   </p>
                 </div>
-
               </div>
             </section>
 
@@ -543,11 +593,10 @@ export default function AddAssetPage() {
               <h2 className={titleClass}>รูปทรัพย์สิน</h2>
 
               <div className="flex flex-col items-center gap-4">
-
                 {image ? (
                   <img
                     src={image}
-                    alt="รูปทรัพย์สิน"
+                    alt="รูปทรัพย์สินรายการใหม่"
                     className="h-52 w-full max-w-[320px] rounded-xl border border-slate-200 bg-white object-contain p-2"
                   />
                 ) : (
@@ -559,7 +608,6 @@ export default function AddAssetPage() {
                 <div className="flex items-center justify-center gap-3">
                   <label className="cursor-pointer rounded-xl bg-[#00786F] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#00665F]">
                     เลือกรูปภาพ
-
                     <input
                       type="file"
                       accept="image/*"
@@ -582,7 +630,6 @@ export default function AddAssetPage() {
                 <p className="text-center text-xs text-slate-400">
                   รองรับรูปภาพขนาดไม่เกิน 500 KB
                 </p>
-
               </div>
             </section>
 
@@ -593,7 +640,6 @@ export default function AddAssetPage() {
               </h2>
 
               <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
-
                 <div>
                   <label className={labelClass}>
                     ราคาซื้อ (บาท)
@@ -610,9 +656,7 @@ export default function AddAssetPage() {
                 </div>
 
                 <div>
-                  <label className={labelClass}>
-                    วันที่ซื้อ
-                  </label>
+                  <label className={labelClass}>วันที่ซื้อ</label>
                   <input
                     type="date"
                     value={purchaseDate}
@@ -633,18 +677,14 @@ export default function AddAssetPage() {
                     max="100"
                     step="1"
                     value={usefulLifeYears}
-                    onChange={(e) =>
-                      setUsefulLifeYears(e.target.value)
-                    }
+                    onChange={(e) => setUsefulLifeYears(e.target.value)}
                     className={inputClass}
                     required
                   />
                 </div>
-
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-sm text-slate-500">
                     ค่าเสื่อมราคาต่อปี
@@ -671,29 +711,23 @@ export default function AddAssetPage() {
                     {baht(currentValue)}
                   </p>
                 </div>
-
               </div>
             </section>
 
             {/* QR Code */}
             <section className={cardClass}>
-              <h2 className={titleClass}>
-                QR Code ทรัพย์สิน
-              </h2>
+              <h2 className={titleClass}>QR Code ทรัพย์สิน</h2>
 
               {qrCode ? (
                 <div className="mx-auto flex w-full max-w-[320px] flex-col items-center rounded-xl border border-slate-200 bg-white p-5">
-
                   <img
                     src={qrCode}
                     alt="QR Code ทรัพย์สิน"
                     className="h-44 w-44 object-contain"
                   />
-
                   <p className="mt-3 text-sm font-bold text-slate-800">
                     {assetId}
                   </p>
-
                 </div>
               ) : (
                 <p className="py-10 text-center text-sm text-slate-400">
@@ -701,17 +735,15 @@ export default function AddAssetPage() {
                 </p>
               )}
             </section>
-
           </div>
 
           {/* ปุ่มดำเนินการ */}
           <div className="mt-5 flex justify-end gap-3">
-
             <button
               type="button"
-              onClick={() => router.push("/assets")}
+              onClick={handleCancel}
               disabled={saving}
-              className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
             >
               ยกเลิก
             </button>
@@ -723,7 +755,6 @@ export default function AddAssetPage() {
             >
               {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
             </button>
-
           </div>
         </form>
       </div>

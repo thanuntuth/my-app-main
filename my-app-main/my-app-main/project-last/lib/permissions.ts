@@ -40,7 +40,7 @@ export const DEFAULT_ROLES: RolePermissions = {
     "count.schedule",
     "transfers.approve",
     "logs.view",
-    "assets.manage",
+    
     "roles.manage",
   ],
   admin: ["assets.manage", "report.view"],

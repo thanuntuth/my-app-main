@@ -37,12 +37,7 @@ export interface CountItemResult {
   image?: string;           // รูปภาพความชำรุด (data URL)
 }
 
-export interface Checklist {
-  branchId: string;
-  assetIds: string[];        // ทรัพย์สินที่สาขานี้ต้องนับ
-  status: "draft" | "sent";  // draft = Admin กำลังตรวจ, sent = ส่งให้สาขาแล้ว
-  sentAt?: string;
-}
+
 
 export interface CountRound {
   id: number;               // CR-0001
@@ -50,7 +45,6 @@ export interface CountRound {
   branch?: string;          // สาขา
   date: string;             // วันที่ตรวจนับ
   status: "open" | "review" | "closed"; // open = สาขากำลังนับ, review = Admin ตรวจผล
-  checklists?: Checklist[];
   results: Record<string, CountItemResult>;        // key = asset id
   extras: { name: string; note?: string }[];       // พบแต่ไม่อยู่ในรายการ
 }
